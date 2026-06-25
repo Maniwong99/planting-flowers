@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歡樂小花園 🌻 Flower Garden</title>
+    <style>
+        /* --- 全局卡通風格樣式 --- */
+        :root {
+            --primary-bg: #e0f7fa;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* 頂部狀態欄 */
+        .status-bar {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.85);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.05);
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #333;
+            z-index: 10;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            padding: 5px 15px;
+            border-radius: 50px;
+            border: 3px solid #FFD700;
+        }
+        .status-item.book {
+            border-color: #FF69B4;
+        }
+
+        /* 花園土地舞台 */
+        .garden-stage {
+            flex: 1;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 25px;
+            padding: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* 花盆組件 */
+        .pot-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .pot-wrapper:active {
+            transform: scale(0.95);
+        }
+
+        /* 植物成長動畫與外觀 */
+        .plant-area {
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            position: relative;
+            width: 100px;
+        }
+
+        .flower-emoji {
+            font-size: 3.5rem;
+            animation: bounceIn 0.5s ease-out forwards;
+            transform-origin: bottom center;
+        }
+        .sprout-emoji {
+            font-size: 2rem;
+            animation: wobble 2s infinite ease-in-out;
+        }
+        .seed-emoji {
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        /* 灑水特效 */
+        .water-drop-effect {
+            position: absolute;
+            top: -20px;
+            font-size: 1.5rem;
+            animation: splash 0.6s linear infinite;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* 卡通花盆 CSS */
+        .pot {
+            width: 80px;
+            height: 60px;
+            background: #D2691E;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            position: relative;
+            border: 4px solid #8B4513;
+            box-shadow: inset -10px 0 0 rgba(0,0,0,0.1);
+        }
+        .pot::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -8px;
+            width: 88px;
+            height: 12px;
+            background: #CD853F;
+            border: 4px solid #8B4513;
+            border-radius: 5px;
+        }
+
+        /* 提示氣泡 */
+        .bubble-tip {
+            position: absolute;
+            top: -30px;
+            background: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            border: 2px solid #333;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+            white-space: nowrap;
+            animation: float 1.5s infinite ease-in-out alternate;
+        }
+
+        /* 倒數計時進度條 */
+        .progress-bar {
+            width: 70px;
+            height: 8px;
+            background: #eee;
+            border-radius: 5px;
+            margin-top: 8px;
+            overflow: hidden;
+            border: 1px solid #ccc;
+            display: none;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.1s linear;
+        }
+
+        /* 底部工具欄 */
+        .toolbar {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 15px;
+            border-top-left-radius: 25px;
+            border-top-right-radius: 25px;
+            box-shadow: 0 -10px 0 rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tool-row {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        /* 分組標題 */
+        .section-title {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #777;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        /* 道具/種子 按鈕樣式 */
+        .btn-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f0f0f0;
+            border: 3px solid #ccc;
+            border-radius: 15px;
+            padding: 8px;
+            width: 75px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .btn-item:hover {
+            transform: translateY(-3px);
+        }
+        .btn-item.active {
+            background: #FFF0F5;
+            border-color: #FF69B4;
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.5);
+        }
+        .btn-item.locked {
+            opacity: 0.5;
+            background: #e0e0e0;
+        }
+        .btn-item .icon {
+            font-size: 1.8rem;
+        }
+        .btn-item .price {
+            font-size: 0.75rem;
+            color: #e67e22;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+        .btn-item .name {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* 大功能按鈕（圖鑑、水壺） */
+        .action-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #388E3C;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .action-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #388E3C;
+        }
+        .action-btn.water-tool {
+            background: #2196F3;
+            box-shadow: 0 5px 0 #1976D2;
+        }
+        .action-btn.water-tool:active {
+            box-shadow: 0 2px 0 #1976D2;
+        }
+        .action-btn.water-tool.active {
+            background: #00bcd4;
+            border: 2px solid white;
+        }
+
+        /* 彈窗樣式（圖鑑） */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-overlay.open {
+            opacity: 1; pointer-events: auto;
+        }
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 450px;
+            border-radius: 25px;
+            padding: 20px;
+            border: 5px solid #FF69B4;
+            text-align: center;
+            position: relative;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.open .modal-content {
+            transform: scale(1);
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px; right: 15px;
+            font-size: 1.5rem; cursor: pointer; color: #aaa;
+        }
+
+        /* 圖鑑網格 */
+        .book-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .book-card {
+            border: 2px dashed #ccc;
+            border-radius: 15px;
+            padding: 10px;
+            background: #fafafa;
+            opacity: 0.5;
+        }
+        .book-card.unlocked {
+            border-style: solid;
+            border-color: #FFD700;
+            background: #FFFDF0;
+            opacity: 1;
+        }
+        .book-card .card-emoji {
+            font-size: 2.5rem;
+        }
+        .book-card .card-name {
+            font-weight: bold; margin: 5px 0;
+        }
+        .book-card .card-info {
+            font-size: 0.75rem; color: #666;
+        }
+
+        /* --- 動化特效庫 --- */
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.1); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes wobble {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(10deg); }
+        }
+        @keyframes float {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+        @keyframes splash {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(20px) scale(0.8); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="status-bar">
+        <div class="status-item" id="coin-display">🪙 金幣: 0</div>
+        <div class="status-item book" id="book-display">📖 圖鑑: 0/4</div>
+    </div>
+
+    <div class="garden-stage">
+        <div class="pot-wrapper" onclick="handlePotClick(0)">
+            <div class="bubble-tip" id="tip-0">點擊種植</div>
+            <div class="plant-area" id="plant-0">
+                <div class="water-drop-effect" id="water-0">💧💧</div>
+                </div>
+            <div class="pot"></div>
+            <div class="progress-bar" id="progress-bar-0"><div class="progress-fill" id="progress-fill-0"></div></div>
+        </div>
+
+        <div class="pot-wrapper" onclick="handlePotClick(1)">
+            <div class="bubble-tip" id="tip-1">點擊種植</div>
+            <div class="plant-area" id="plant-1">
+                <div class="water-drop-effect" id="water-1">💧💧</div>
+            </div>
+            <div class="pot"></div>
+            <div class="progress-bar" id="progress-bar-1"><div class="progress-fill" id="progress-fill-1"></div></div>
+        </div>
+
+        <div class="pot-wrapper" onclick="handlePotClick(2)">
+            <div class="bubble-tip" id="tip-2">點擊種植</div>
+            <div class="plant-area" id="plant-2">
+                <div class="water-drop-effect" id="water-2">💧💧</div>
+            </div>
+            <div class="pot"></div>
+            <div class="progress-bar" id="progress-bar-2"><div class="progress-fill" id="progress-fill-2"></div></div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <p class="section-title">選擇你要種植的可愛種子</p>
+        <div class="tool-row" id="seeds-market">
+            </div>
+
+        <p class="section-title">工具箱</p>
+        <div class="tool-row">
+            <button class="action-btn water-tool" id="water-btn" onclick="selectWaterTool()">
+                💧 澆水壺 <span id="water-active-tag" style="display:none;">(使用中)</span>
+            </button>
+            <button class="action-btn" onclick="openBookModal()">
+                📖 花花圖鑑
+            </button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="book-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeBookModal()">&times;</span>
+            <h2 style="color: #FF69B4; margin-top:0;">🌸 我的花花圖鑑 🌸</h2>
+            <p style="font-size:0.9rem; color:#666;">種出新花卉就可以解鎖有趣的植物小知識哦！</p>
+            <div class="book-grid" id="book-grid-content">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        /* --- 遊戲數據配置 --- */
+        let playerCoins = 0;
+        let unlockedFlowers = ['sunflower']; // 初始只解鎖向日葵
+        let discoveredFlowers = []; // 玩家實際種出來過的花卉
+
+        // 花卉配置數據表
+        const flowerData = {
+            sunflower: { id: 'sunflower', name: '向日葵', emoji: '🌻', cost: 0, time: 3, reward: 10, tip: '總是朝著太陽微笑！' },
+            tulip: { id: 'tulip', name: '鬱金香', emoji: '🌷', cost: 20, time: 5, reward: 30, tip: '荷蘭的國花，像個小杯子。' },
+            rose: { id: 'rose', name: '玫瑰花', emoji: '🌹', cost: 50, time: 8, reward: 80, tip: '莖上有小刺，要小心觸摸哦！' },
+            rainbow: { id: 'rainbow', name: '彩虹花', emoji: '🌈', cost: 150, time: 12, reward: 250, tip: '能帶來幸運的夢幻花朵！' }
+        };
+
+        // 花盆狀態跟蹤 (0: 空地, 1: 已播種, 2: 正在生長, 3: 已開花可收穫)
+        let potStates = [
+            { status: 0, flowerId: null, timer: null, currentProgress: 0 },
+            { status: 0, flowerId: null, timer: null, currentProgress: 0 },
+            { status: 0, flowerId: null, timer: null, currentProgress: 0 }
+        ];
+
+        // 當前選中的操作狀態 ('seed' 或 'water' 或 null)
+        let currentSelectedAction = 'seed'; 
+        let currentSelectedSeed = 'sunflower'; // 預設選中向日葵種子
+
+        /* --- 遊戲初始化工作 --- */
+        function initGame() {
+            updateUI();
+            renderMarket();
+            renderBook();
+        }
+
+        /* --- 渲染與介面更新函數 --- */
+        function updateUI() {
+            // 更新金幣與圖鑑頂部顯示
+            document.getElementById('coin-display').innerText = `🪙 金幣: ${playerCoins}`;
+            document.getElementById('book-display').innerText = `📖 圖鑑: ${discoveredFlowers.length}/${Object.keys(flowerData).length}`;
+            
+            // 檢查是否有足夠的金幣解鎖新種子
+            Object.keys(flowerData).forEach(id => {
+                if (!unlockedFlowers.includes(id) && playerCoins >= flowerData[id].cost) {
+                    unlockedFlowers.push(id);
+                    renderMarket(); // 重新渲染商店以刷新解鎖狀態
+                }
+            });
+
+            // 更新每個花盆的氣泡提示與外觀
+            potStates.forEach((pot, index) => {
+                const tipEl = document.getElementById(`tip-${index}`);
+                const plantEl = document.getElementById(`plant-${index}`);
+                
+                // 清除除了灑水特效外的舊植物特徵
+                const existingPlant = plantEl.querySelector('.plant-dynamic');
+                if (existingPlant) existingPlant.remove();
+
+                if (pot.status === 0) {
+                    tipEl.innerText = '點擊種植';
+                    tipEl.style.display = 'block';
+                } else if (pot.status === 1) {
+                    tipEl.innerText = '需要澆水！';
+                    tipEl.style.display = 'block';
+                    // 放入種子外觀
+                    plantEl.insertAdjacentHTML('beforeend', '<span class="plant-dynamic seed-emoji">🟤</span>');
+                } else if (pot.status === 2) {
+                    tipEl.style.display = 'none'; // 生長中隱藏提示
+                    // 放入發芽外觀
+                    plantEl.insertAdjacentHTML('beforeend', '<span class="plant-dynamic sprout-emoji">🌱</span>');
+                } else if (pot.status === 3) {
+                    const flower = flowerData[pot.flowerId];
+                    tipEl.innerText = `點擊收穫 +${flower.reward}`;
+                    tipEl.style.display = 'block';
+                    // 放入開花外觀
+                    plantEl.insertAdjacentHTML('beforeend', `<span class="plant-dynamic flower-emoji">${flower.emoji}</span>`);
+                }
+            });
+        }
+
+        // 渲染種子商店
+        function renderMarket() {
+            const marketEl = document.getElementById('seeds-market');
+            marketEl.innerHTML = '';
+
+            Object.keys(flowerData).forEach(id => {
+                const flower = flowerData[id];
+                const isUnlocked = unlockedFlowers.includes(id);
+                
+                let cardHtml = '';
+                if (isUnlocked) {
+                    const isActive = (currentSelectedAction === 'seed' && currentSelectedSeed === id) ? 'active' : '';
+                    cardHtml = `
+                        <div class="btn-item ${isActive}" onclick="selectSeed('${id}')">
+                            <span class="icon">${flower.emoji}</span>
+                            <span class="name">${flower.name}</span>
+                            <span class="price">+${flower.reward}🪙</span>
+                        </div>
+                    `;
+                } else {
+                    cardHtml = `
+                        <div class="btn-item locked">
+                            <span class="icon">🔒</span>
+                            <span class="name">${flower.name}</span>
+                            <span class="price">${flower.cost}金幣</span>
+                        </div>
+                    `;
+                }
+                marketEl.insertAdjacentHTML('beforeend', cardHtml);
+            });
+        }
+
+        // 渲染圖鑑內容
+        function renderBook() {
+            const gridEl = document.getElementById('book-grid-content');
+            gridEl.innerHTML = '';
+
+            Object.keys(flowerData).forEach(id => {
+                const flower = flowerData[id];
+                const isDiscovered = discoveredFlowers.includes(id);
+
+                if (isDiscovered) {
+                    gridEl.insertAdjacentHTML('beforeend', `
+                        <div class="book-card unlocked">
+                            <div class="card-emoji">${flower.emoji}</div>
+                            <div class="card-name">${flower.name}</div>
+                            <div class="card-info">${flower.tip}</div>
+                        </div>
+                    `);
+                } else {
+                    gridEl.insertAdjacentHTML('beforeend', `
+                        <div class="book-card">
+                            <div class="card-emoji">❓</div>
+                            <div class="card-name">未解鎖花卉</div>
+                            <div class="card-info">在花園裡動手種植來發現它吧！</div>
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        /* --- 核心核心交互邏輯 --- */
+
+        // 選擇種植某種種子
+        function selectSeed(seedId) {
+            currentSelectedAction = 'seed';
+            currentSelectedSeed = seedId;
+            document.getElementById('water-btn').classList.remove('active');
+            document.getElementById('water-active-tag').style.display = 'none';
+            renderMarket();
+        }
+
+        // 選擇水壺工具
+        function selectWaterTool() {
+            currentSelectedAction = 'water';
+            document.getElementById('water-btn').classList.add('active');
+            document.getElementById('water-active-tag').style.display = 'inline';
+            renderMarket(); // 移除種子的選中高亮
+        }
+
+        // 點擊花盆的決策中心
+        function handlePotClick(potIndex) {
+            const pot = potStates[potIndex];
+
+            // 狀態 0: 空地 -> 播種
+            if (pot.status === 0) {
+                if (currentSelectedAction === 'seed' && currentSelectedSeed) {
+                    pot.status = 1;
+                    pot.flowerId = currentSelectedSeed;
+                    updateUI();
+                } else {
+                    alert('請先在下方選擇想要種植的植物種子哦！🌻');
+                }
+            } 
+            // 狀態 1: 已播種 -> 澆水（開始生長計時）
+            else if (pot.status === 1) {
+                if (currentSelectedAction === 'water') {
+                    startGrowing(potIndex);
+                } else {
+                    alert('種子已經種下去了，快拿【澆水壺】幫它澆澆水吧！💧');
+                }
+            }
+            // 狀態 2: 正在生長中 -> 不做反應或提示
+            else if (pot.status === 2) {
+                // 讓小朋友看到植物正在努力長大
+            }
+            // 狀態 3: 已開花 -> 收穫獲得金幣與解鎖圖鑑
+            else if (pot.status === 3) {
+                harvestFlower(potIndex);
+            }
+        }
+
+        // 開始生長倒數
+        function startGrowing(potIndex) {
+            const pot = potStates[potIndex];
+            pot.status = 2;
+            updateUI();
+
+            // 展現灑水動畫特效
+            const waterEffect = document.getElementById(`water-${potIndex}`);
+            waterEffect.style.display = 'block';
+
+            // 顯示進度條
+            const progressGroup = document.getElementById(`progress-bar-${potIndex}`);
+            const progressFill = document.getElementById(`progress-fill-${potIndex}`);
+            progressGroup.style.display = 'block';
+            progressFill.style.width = '0%';
+
+            const targetTime = flowerData[pot.flowerId].time * 10; // 轉為每 100 毫秒一步
+            let elapsed = 0;
+
+            pot.timer = setInterval(() => {
+                elapsed++;
+                const percent = (elapsed / targetTime) * 100;
+                progressFill.style.width = `${percent}%`;
+
+                if (elapsed >= targetTime) {
+                    clearInterval(pot.timer);
+                    pot.status = 3; // 變更為可收穫狀態
+                    waterEffect.style.display = 'none';
+                    progressGroup.style.display = 'none';
+                    updateUI();
+                }
+            }, 100);
+        }
+
+        // 收穫花朵
+        function harvestFlower(potIndex) {
+            const pot = potStates[potIndex];
+            const flower = flowerData[pot.flowerId];
+
+            // 1. 給予獎勵
+            playerCoins += flower.reward;
+
+            // 2. 檢查圖鑑收集
+            if (!discoveredFlowers.includes(pot.flowerId)) {
+                discoveredFlowers.push(pot.flowerId);
+                renderBook(); // 刷新圖鑑彈窗內文
+                
+                // 自動彈窗通知新解鎖，增加成就感
+                setTimeout(() => {
+                    openBookModal();
+                }, 300);
+            }
+
+            // 3. 重置花盆狀態
+            pot.status = 0;
+            pot.flowerId = null;
+            pot.timer = null;
+
+            // 4. 全局界面更新
+            updateUI();
+        }
+
+        /* --- 彈窗模態框控制 --- */
+        function openBookModal() {
+            document.getElementById('book-modal').classList.add('open');
+        }
+
+        function closeBookModal() {
+            document.getElementById('book-modal').classList.remove('open');
+        }
+
+        // 啟動遊戲
+        window.onload = initGame;
+    </script>
+</body>
+</html>
